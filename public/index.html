@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Puyo Battle Online</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+–bg-dark: #0a0a1a;
+–bg-panel: #12122a;
+–bg-card: #1a1a35;
+–border-glow: #3a3aff;
+–accent-cyan: #00e5ff;
+–accent-pink: #ff2d7b;
+–accent-gold: #ffd700;
+–accent-green: #33ff88;
+–text-main: #e8e8ff;
+–text-dim: #666;
+}
+
+html, body {
+width: 100%; height: 100%;
+background: var(–bg-dark);
+font-family: ‘Orbitron’, ‘Noto Sans JP’, sans-serif;
+color: var(–text-main);
+overflow: hidden;
+touch-action: none;
+user-select: none;
+-webkit-user-select: none;
+}
+
+/* === SCREENS === */
+.screen {
+display: none;
+width: 100%; height: 100%;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
+.screen.active { display: flex; }
+
+/* === LOBBY === */
+#lobbyScreen {
+gap: 16px;
+padding: 20px;
+}
+
+#lobbyScreen h1 {
+font-size: clamp(22px, 5vw, 44px);
+font-weight: 900;
+background: linear-gradient(135deg, var(–accent-cyan), var(–accent-pink), var(–accent-gold));
+-webkit-background-clip: text; -webkit-text-fill-color: transparent;
+background-clip: text;
+letter-spacing: 3px;
+}
+
+.lobby-section {
+width: 100%; max-width: 400px;
+display: flex; flex-direction: column; gap: 10px;
+}
+
+.lobby-input {
+width: 100%;
+padding: 10px 14px;
+font-family: ‘Noto Sans JP’, sans-serif;
+font-size: 15px;
+background: var(–bg-card);
+border: 1px solid rgba(58,58,255,0.3);
+color: var(–text-main);
+border-radius: 4px;
+outline: none;
+text-align: center;
+}
+.lobby-input:focus { border-color: var(–accent-cyan); }
+.lobby-input::placeholder { color: #555; }
+
+.btn {
+padding: 12px 28px;
+font-family: ‘Orbitron’, sans-serif;
+font-size: clamp(12px, 2vw, 15px);
+font-weight: 700;
+border: 2px solid var(–accent-cyan);
+background: rgba(0, 229, 255, 0.08);
+color: var(–accent-cyan);
+cursor: pointer;
+border-radius: 4px;
+transition: all 0.2s;
+letter-spacing: 2px;
+white-space: nowrap;
+}
+.btn:hover, .btn:active {
+background: rgba(0, 229, 255, 0.2);
+box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
+}
+.btn-pink { border-color: var(–accent-pink); color: var(–accent-pink); background: rgba(255,45,123,0.08); }
+.btn-pink:hover, .btn-pink:active { background: rgba(255,45,123,0.2); box-shadow: 0 0 15px rgba(255,45,123,0.25); }
+.btn-gold { border-color: var(–accent-gold); color: var(–accent-gold); background: rgba(255,215,0,0.08); }
+.btn-gold:hover, .btn-gold:active { background: rgba(255,215,0,0.2); box-shadow: 0 0 15px rgba(255,215,0,0.25); }
+.btn-green { border-color: var(–accent-green); color: var(–accent-green); background: rgba(51,255,136,0.08); }
+.btn-green:hover, .btn-green:active { background: rgba(51,255,136,0.2); box-shadow: 0 0 15px rgba(51,255,136,0.25); }
+.btn-small { padding: 8px 16px; font-size: 11px; }
+.btn-block { width: 100%; }
+
+.btn-row { display: flex; gap: 8px; width: 100%; max-width: 400px; }
+.btn-row .btn { flex: 1; }
+
+.divider {
+width: 100%; max-width: 400px;
+text-align: center; color: #444;
+font-size: 11px; letter-spacing: 3px;
+margin: 4px 0;
+}
+
+.status-text {
+font-size: clamp(11px, 2vw, 14px);
+color: var(–accent-gold);
+text-align: center;
+min-height: 20px;
+}
+
+.room-code {
+font-size: clamp(28px, 6vw, 48px);
+font-weight: 900;
+color: var(–accent-cyan);
+letter-spacing: 8px;
+text-align: center;
+}
+
+/* === WAITING ROOM === */
+#waitingScreen { gap: 20px; }
+#waitingScreen .player-slots {
+display: flex; gap: 30px; align-items: center;
+}
+.player-slot {
+width: 120px; text-align: center;
+padding: 16px; border-radius: 6px;
+border: 2px solid rgba(58,58,255,0.3);
+background: var(–bg-card);
+}
+.player-slot .slot-name {
+font-size: 13px; font-weight: 700;
+margin-bottom: 6px; min-height: 18px;
+}
+.player-slot .slot-status {
+font-size: 10px; color: #555;
+}
+.player-slot.ready .slot-status { color: var(–accent-green); }
+.vs-text { font-size: 20px; font-weight: 900; color: var(–accent-pink); }
+
+/* === GAME SCREEN === */
+#gameScreen {
+padding: 4px;
+justify-content: flex-start;
+}
+
+#gameTopBar {
+width: 100%; max-width: 700px;
+display: flex; justify-content: space-between; align-items: center;
+padding: 4px 12px;
+font-size: clamp(10px, 1.8vw, 13px);
+}
+
+.player-info {
+display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.player-info .p-name {
+font-weight: 700; font-size: clamp(10px, 1.8vw, 13px);
+max-width: 100px; overflow: hidden; text-overflow: ellipsis;
+}
+.player-info .p-score { color: var(–accent-cyan); font-size: clamp(11px, 2vw, 14px); font-weight: 700; }
+.player-info.opponent .p-name { color: var(–accent-pink); }
+
+#centerInfo {
+display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+#chainDisplay {
+color: var(–accent-pink); font-weight: 900;
+font-size: clamp(13px, 2.5vw, 18px);
+min-width: 80px; text-align: center;
+opacity: 0; transition: opacity 0.3s;
+}
+#chainDisplay.show { opacity: 1; }
+#garbageIndicator {
+font-size: clamp(10px, 1.5vw, 12px);
+color: var(–accent-gold);
+min-height: 16px;
+}
+
+#fieldsContainer {
+display: flex;
+align-items: flex-start;
+justify-content: center;
+gap: clamp(6px, 2vw, 20px);
+flex: 1;
+width: 100%;
+max-width: 700px;
+}
+
+.field-wrapper {
+position: relative;
+border: 2px solid rgba(58,58,255,0.35);
+border-radius: 5px;
+background: rgba(10,10,30,0.9);
+box-shadow: 0 0 20px rgba(58,58,255,0.1), inset 0 0 15px rgba(0,0,0,0.5);
+}
+.field-wrapper.opponent-field {
+border-color: rgba(255,45,123,0.25);
+box-shadow: 0 0 20px rgba(255,45,123,0.08);
+opacity: 0.85;
+}
+
+.next-col {
+display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.next-label { font-size: 8px; color: #555; letter-spacing: 2px; }
+.next-canvas {
+border: 1px solid rgba(58,58,255,0.2);
+border-radius: 3px;
+background: rgba(10,10,30,0.5);
+}
+
+/* Controls */
+#controlsArea {
+width: 100%; max-width: 700px;
+padding: 6px 10px;
+display: flex; justify-content: center;
+}
+
+#virtualButtons { display: none; width: 100%; justify-content: space-between; align-items: center; padding: 0 4px; }
+.vbtn-group { display: flex; gap: 5px; }
+.vbtn {
+width: clamp(44px, 11vw, 58px); height: clamp(44px, 11vw, 58px);
+border: 2px solid rgba(255,255,255,0.2);
+border-radius: 8px;
+background: rgba(255,255,255,0.05);
+color: #ccc;
+font-size: clamp(16px, 3.5vw, 22px);
+display: flex; align-items: center; justify-content: center;
+cursor: pointer;
+-webkit-tap-highlight-color: transparent;
+}
+.vbtn:active { background: rgba(255,255,255,0.15); }
+.vbtn-rotate { border-color: rgba(255,45,123,0.4); color: var(–accent-pink); }
+
+#controlToggle {
+position: fixed; bottom: 8px; right: 8px;
+font-size: 10px; padding: 4px 8px;
+border: 1px solid #444; background: rgba(0,0,0,0.6);
+color: #888; cursor: pointer; border-radius: 3px;
+font-family: ‘Orbitron’, sans-serif;
+z-index: 50;
+}
+
+#keyHint {
+font-size: 9px; color: #444;
+text-align: center; padding: 2px;
+letter-spacing: 1px;
+}
+
+/* Overlays */
+.overlay {
+display: none; position: fixed; top: 0; left: 0;
+width: 100%; height: 100%;
+background: rgba(0,0,0,0.88);
+flex-direction: column; align-items: center; justify-content: center;
+gap: 16px; z-index: 100;
+}
+.overlay.show { display: flex; }
+.overlay h2 { font-size: clamp(22px, 5vw, 36px); font-weight: 900; }
+
+/* Countdown */
+#countdown {
+display: none; position: fixed; top: 0; left: 0;
+width: 100%; height: 100%;
+background: rgba(0,0,0,0.7);
+align-items: center; justify-content: center;
+z-index: 90;
+font-size: clamp(48px, 12vw, 80px);
+font-weight: 900;
+color: var(–accent-cyan);
+}
+#countdown.show { display: flex; }
+
+/* Single player button on lobby */
+.solo-link {
+font-family: ‘Orbitron’, sans-serif;
+font-size: 13px; color: #888; cursor: pointer; margin-top: 12px;
+background: none; border: 1px solid #444; border-radius: 4px;
+padding: 10px 24px;
+-webkit-tap-highlight-color: rgba(255,255,255,0.1);
+}
+.solo-link:hover, .solo-link:active { color: #ccc; border-color: #888; }
+
+/* Animation */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.screen.active { animation: fadeIn 0.4s ease; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.waiting-anim { animation: pulse 1.5s infinite; }
+
+/* Responsive */
+@media (max-width: 480px) {
+.player-slot { width: 90px; padding: 10px; }
+.vs-text { font-size: 16px; }
+}
+@media (min-width: 768px) {
+#keyHint { display: block; }
+}
+</style>
+
+</head>
+<body>
+
+<!-- ============ LOBBY ============ -->
+
+<div class="screen active" id="lobbyScreen">
+  <h1>PUYO BATTLE</h1>
+
+  <div class="lobby-section">
+    <input class="lobby-input" id="playerName" placeholder="名前を入力" maxlength="12" value="">
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-green" onclick="findRandomMatch()">ランダム対戦</button>
+  </div>
+
+  <div class="divider">── OR ──</div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="createRoom()">ルーム作成</button>
+    <button class="btn btn-pink" onclick="showJoinInput()">ルーム参加</button>
+  </div>
+
+  <div class="lobby-section" id="joinSection" style="display:none;">
+    <input class="lobby-input" id="roomInput" placeholder="ルームID (4文字)" maxlength="4" style="text-transform:uppercase;">
+    <button class="btn btn-gold btn-block" onclick="joinRoom()">参加</button>
+  </div>
+
+  <div class="status-text" id="lobbyStatus"></div>
+  <button class="solo-link" onclick="startSoloMode()">ソロプレイで練習 →</button>
+</div>
+
+<!-- ============ WAITING ROOM ============ -->
+
+<div class="screen" id="waitingScreen">
+  <h2 style="font-size: clamp(14px,3vw,20px); color: var(--accent-gold); margin-bottom: 8px;">
+    ROOM: <span id="displayRoomId" class="room-code" style="font-size:inherit;"></span>
+  </h2>
+
+  <div class="player-slots">
+    <div class="player-slot" id="slot0">
+      <div class="slot-name" id="slotName0">---</div>
+      <div class="slot-status" id="slotStatus0">待機中</div>
+    </div>
+    <div class="vs-text">VS</div>
+    <div class="player-slot" id="slot1">
+      <div class="slot-name" id="slotName1">---</div>
+      <div class="slot-status" id="slotStatus1">待機中</div>
+    </div>
+  </div>
+
+<button class="btn btn-green" id="readyBtn" onclick="sendReady()">READY</button>
+
+  <div class="status-text" id="waitingStatus"></div>
+  <button class="btn-small btn-pink" onclick="leaveRoom()" style="border:1px solid var(--accent-pink); background:none; color:var(--accent-pink); cursor:pointer; padding:6px 14px; border-radius:3px; font-family:'Orbitron',sans-serif; font-size:10px;">退出</button>
+</div>
+
+<!-- ============ GAME ============ -->
+
+<div class="screen" id="gameScreen">
+  <div id="gameTopBar">
+    <div class="player-info" id="myInfo">
+      <span class="p-name" id="myName">YOU</span>
+      <span class="p-score" id="myScore">0</span>
+    </div>
+    <div id="centerInfo">
+      <div id="chainDisplay"></div>
+      <div id="garbageIndicator"></div>
+    </div>
+    <div class="player-info opponent" id="oppInfo">
+      <span class="p-name" id="oppName">OPPONENT</span>
+      <span class="p-score" id="oppScore">0</span>
+    </div>
+  </div>
+
+  <div id="fieldsContainer">
+    <!-- My side -->
+    <div class="next-col" id="myNextCol">
+      <span class="next-label">NEXT</span>
+      <canvas class="next-canvas" id="myNext1"></canvas>
+      <canvas class="next-canvas" id="myNext2"></canvas>
+    </div>
+    <div class="field-wrapper" id="myFieldWrapper">
+      <canvas id="myCanvas"></canvas>
+    </div>
+
+```
+<!-- Opponent side -->
+<div class="field-wrapper opponent-field" id="oppFieldWrapper">
+  <canvas id="oppCanvas"></canvas>
+</div>
+<div class="next-col" id="oppNextCol" style="visibility:hidden;">
+  <span class="next-label">NEXT</span>
+  <canvas class="next-canvas" id="oppNext1"></canvas>
+  <canvas class="next-canvas" id="oppNext2"></canvas>
+</div>
+```
+
+  </div>
+
+  <div id="controlsArea">
+    <div id="virtualButtons">
+      <div class="vbtn-group">
+        <button class="vbtn" data-action="left">◀</button>
+        <button class="vbtn" data-action="down" style="border-color:rgba(0,229,255,0.4);">▼</button>
+        <button class="vbtn" data-action="right">▶</button>
+      </div>
+      <div class="vbtn-group">
+        <button class="vbtn vbtn-rotate" data-action="rotL">↶</button>
+        <button class="vbtn vbtn-rotate" data-action="rotR">↷</button>
+        <button class="vbtn" data-action="drop" style="border-color:rgba(0,229,255,0.4);">⏬</button>
+      </div>
+    </div>
+  </div>
+  <div id="keyHint" style="display:none;">← → ↓ 移動 ／ Z X 回転 ／ ↑ 即落下</div>
+  <button id="controlToggle" onclick="toggleControls()" style="display:none;">🎮</button>
+</div>
+
+<!-- ============ OVERLAYS ============ -->
+
+<div id="countdown"></div>
+
+<div class="overlay" id="resultOverlay">
+  <h2 id="resultTitle"></h2>
+  <div style="font-size:clamp(12px,2.5vw,16px); color:var(--accent-gold);" id="resultDetail"></div>
+  <div class="btn-row" style="max-width:300px;">
+    <button class="btn btn-green" onclick="requestRematch()">REMATCH</button>
+    <button class="btn btn-pink" onclick="backToLobby()">LOBBY</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+// ============================================================
+// PUYO BATTLE CLIENT
+// ============================================================
+
+// ── Constants ──
+const COLS = 6, ROWS = 12, HIDDEN_ROW = 1, TOTAL_ROWS = ROWS + HIDDEN_ROW;
+
+const PUYO_COLORS = [
+  null,
+  { main:'#ff3355', light:'#ff6b88', dark:'#cc1133' },
+  { main:'#33cc33', light:'#66ee66', dark:'#1a991a' },
+  { main:'#3388ff', light:'#66aaff', dark:'#1155cc' },
+  { main:'#ffcc00', light:'#ffdd55', dark:'#cc9900' },
+  { main:'#cc44ff', light:'#dd77ff', dark:'#9922cc' },
+];
+const GARBAGE_COLOR = { main:'#888', light:'#aaa', dark:'#555' };
+
+const CHILD_OFFSETS = [{dr:-1,dc:0},{dr:0,dc:1},{dr:1,dc:0},{dr:0,dc:-1}];
+
+// ── Socket ──
+const socket = io();
+
+// ── State ──
+let myPlayerNum = -1;
+let roomId = null;
+let soloMode = false;
+
+// Game state
+let field = [];
+let currentPair = null;
+let nextPairs = [];
+let score = 0, level = 1, maxChain = 0, totalCleared = 0;
+let numColors = 4;
+let dropInterval = 500, dropTimer = 0;
+let lastTime = 0;
+let gameRunning = false, animating = false;
+let pendingGarbage = 0;
+let rng = null; // Seeded RNG
+
+// Opponent display
+let oppField = [];
+let oppScore = 0;
+
+// Canvas
+let myCanvas, myCtx, oppCanvas, oppCtx;
+let myNextCanvases = [], oppNextCanvases = [];
+let cellSize = 28, oppCellSize = 20;
+
+// Controls
+let controlMode = 'buttons';
+let touchStartX = 0, touchStartY = 0, touchMoved = false;
+let chainTimeout = null;
+
+// ── Seeded RNG (Mulberry32) ──
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function randomColor() {
+  return Math.floor(rng() * numColors) + 1;
+}
+
+// ── Screens ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Lobby ──
+function getName() {
+  return document.getElementById('playerName').value.trim() || 'Player';
+}
+
+function showJoinInput() {
+  const s = document.getElementById('joinSection');
+  s.style.display = s.style.display === 'none' ? 'flex' : 'none';
+}
+
+function setLobbyStatus(msg) {
+  document.getElementById('lobbyStatus').textContent = msg;
+}
+
+function createRoom() {
+  socket.emit('createRoom', { name: getName() });
+  setLobbyStatus('ルーム作成中...');
+}
+
+function joinRoom() {
+  const code = document.getElementById('roomInput').value.trim().toUpperCase();
+  if (code.length < 4) return setLobbyStatus('4文字のルームIDを入力');
+  socket.emit('joinRoom', { roomId: code, name: getName() });
+  setLobbyStatus('参加中...');
+}
+
+function findRandomMatch() {
+  socket.emit('findMatch', { name: getName() });
+  setLobbyStatus('');
+  showScreen('waitingScreen');
+  document.getElementById('displayRoomId').textContent = '---';
+  document.getElementById('waitingStatus').innerHTML = '<span class="waiting-anim">対戦相手を探しています...</span>';
+  document.getElementById('readyBtn').style.display = 'none';
+}
+
+function leaveRoom() {
+  socket.emit('cancelMatch');
+  if (roomId) socket.disconnect();
+  location.reload();
+}
+
+function sendReady() {
+  socket.emit('ready');
+  document.getElementById('readyBtn').disabled = true;
+  document.getElementById('readyBtn').textContent = 'WAITING...';
+}
+
+function requestRematch() {
+  document.getElementById('resultOverlay').classList.remove('show');
+  socket.emit('rematch');
+}
+
+function backToLobby() {
+  document.getElementById('resultOverlay').classList.remove('show');
+  gameRunning = false;
+  location.reload();
+}
+
+function startSoloMode() {
+  soloMode = true;
+  rng = mulberry32(Date.now());
+  numColors = 4;
+  dropInterval = 500;
+  initGame();
+}
+
+// ── Socket Events ──
+socket.on('roomCreated', (data) => {
+  roomId = data.roomId;
+  myPlayerNum = data.playerNum;
+  showScreen('waitingScreen');
+  document.getElementById('displayRoomId').textContent = roomId;
+  document.getElementById('waitingStatus').textContent = '相手の参加を待っています...';
+  document.getElementById('readyBtn').style.display = 'none';
+});
+
+socket.on('roomJoined', (data) => {
+  roomId = data.roomId;
+  myPlayerNum = data.playerNum;
+  showScreen('waitingScreen');
+  document.getElementById('displayRoomId').textContent = roomId;
+});
+
+socket.on('matchFound', (data) => {
+  roomId = data.roomId;
+  myPlayerNum = data.playerNum;
+  document.getElementById('displayRoomId').textContent = roomId;
+  document.getElementById('waitingStatus').textContent = 'マッチング成立！';
+});
+
+socket.on('waiting', () => {
+  // Already showing waiting screen
+});
+
+socket.on('matchCancelled', () => {
+  showScreen('lobbyScreen');
+});
+
+socket.on('joinError', (data) => {
+  setLobbyStatus(data.message);
+});
+
+socket.on('playerInfo', (data) => {
+  showScreen('waitingScreen');
+  document.getElementById('slotName0').textContent = data.players[0] || '---';
+  document.getElementById('slotName1').textContent = data.players[1] || '---';
+  if (data.count >= 2) {
+    document.getElementById('readyBtn').style.display = 'inline-block';
+    document.getElementById('readyBtn').disabled = false;
+    document.getElementById('readyBtn').textContent = 'READY';
+    document.getElementById('waitingStatus').textContent = 'READYを押してゲーム開始';
+  }
+});
+
+socket.on('readyState', (data) => {
+  for (let i = 0; i < 2; i++) {
+    const slot = document.getElementById(`slot${i}`);
+    const status = document.getElementById(`slotStatus${i}`);
+    if (data.ready[i]) {
+      slot.classList.add('ready');
+      status.textContent = 'READY!';
+      status.style.color = 'var(--accent-green)';
+    } else {
+      slot.classList.remove('ready');
+      status.textContent = '待機中';
+      status.style.color = '#555';
+    }
+  }
+});
+
+socket.on('gameStart', (data) => {
+  soloMode = false;
+  rng = mulberry32(data.seed);
+  numColors = data.settings?.colors || 4;
+  dropInterval = data.settings?.speed || 500;
+  initGame();
+});
+
+socket.on('opponentField', (data) => {
+  oppField = data.field;
+  oppScore = data.score;
+  document.getElementById('oppScore').textContent = oppScore.toLocaleString();
+  drawOppField();
+});
+
+socket.on('receiveGarbage', (data) => {
+  pendingGarbage += data.lines;
+  updateGarbageIndicator();
+});
+
+socket.on('gameEnd', (data) => {
+  gameRunning = false;
+  const won = data.winner === myPlayerNum;
+  document.getElementById('resultTitle').textContent = won ? 'YOU WIN!' : 'YOU LOSE';
+  document.getElementById('resultTitle').style.color = won ? 'var(--accent-green)' : 'var(--accent-pink)';
+  document.getElementById('resultDetail').textContent =
+    `${data.winnerName} の勝利 ─ Score: ${score.toLocaleString()}`;
+  document.getElementById('resultOverlay').classList.add('show');
+});
+
+socket.on('opponentLeft', () => {
+  gameRunning = false;
+  document.getElementById('resultTitle').textContent = '相手が切断しました';
+  document.getElementById('resultTitle').style.color = 'var(--accent-gold)';
+  document.getElementById('resultDetail').textContent = '';
+  document.getElementById('resultOverlay').classList.add('show');
+});
+
+// ── Game Init ──
+function initGame() {
+  showScreen('gameScreen');
+
+  // Show controls
+  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  controlMode = isMobile ? 'buttons' : 'keyboard';
+  document.getElementById('virtualButtons').style.display = isMobile ? 'flex' : 'none';
+  document.getElementById('controlToggle').style.display = isMobile ? 'block' : 'none';
+  if (!isMobile) document.getElementById('keyHint').style.display = 'block';
+
+  // Names
+  document.getElementById('myName').textContent = getName();
+  document.getElementById('oppName').textContent = soloMode ? '---' : 'OPPONENT';
+
+  // Init canvases
+  myCanvas = document.getElementById('myCanvas');
+  myCtx = myCanvas.getContext('2d');
+  oppCanvas = document.getElementById('oppCanvas');
+  oppCtx = oppCanvas.getContext('2d');
+  myNextCanvases = [document.getElementById('myNext1'), document.getElementById('myNext2')];
+
+  // Hide opponent field in solo
+  document.getElementById('oppFieldWrapper').style.display = soloMode ? 'none' : 'block';
+  document.getElementById('oppInfo').style.visibility = soloMode ? 'hidden' : 'visible';
+
+  calcSizes();
+
+  // Init field
+  field = [];
+  oppField = [];
+  for (let r = 0; r < TOTAL_ROWS; r++) {
+    field.push(new Array(COLS).fill(0));
+    oppField.push(new Array(COLS).fill(0));
+  }
+
+  score = 0; level = 1; maxChain = 0; totalCleared = 0;
+  pendingGarbage = 0; dropTimer = 0;
+  currentPair = null; nextPairs = [];
+  animating = false;
+  oppScore = 0;
+
+  document.getElementById('myScore').textContent = '0';
+  document.getElementById('oppScore').textContent = '0';
+  updateGarbageIndicator();
+
+  // Countdown then start
+  showCountdown(() => {
+    gameRunning = true;
+    spawnPair();
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+  });
+}
+
+function showCountdown(callback) {
+  const el = document.getElementById('countdown');
+  el.classList.add('show');
+  let count = 3;
+  el.textContent = count;
+  const iv = setInterval(() => {
+    count--;
+    if (count > 0) {
+      el.textContent = count;
+    } else if (count === 0) {
+      el.textContent = 'GO!';
+    } else {
+      clearInterval(iv);
+      el.classList.remove('show');
+      callback();
+    }
+  }, 700);
+}
+
+// ── Sizing ──
+function calcSizes() {
+  const topBar = document.getElementById('gameTopBar');
+  const controls = document.getElementById('controlsArea');
+  const topH = topBar.offsetHeight || 40;
+  const ctrlH = controls.offsetHeight || 70;
+  const availH = window.innerHeight - topH - ctrlH - 20;
+  const showOpp = !soloMode;
+
+  // My field takes ~55% width, opp ~35%
+  const totalFieldsW = window.innerWidth - 60; // margins + next panels
+  const myW = showOpp ? totalFieldsW * 0.5 : totalFieldsW * 0.7;
+  const oppW = showOpp ? totalFieldsW * 0.35 : 0;
+
+  cellSize = Math.min(Math.floor(availH / ROWS), Math.floor(myW / COLS), 40);
+  cellSize = Math.max(cellSize, 18);
+  oppCellSize = showOpp ? Math.min(Math.floor(availH / ROWS), Math.floor(oppW / COLS), 28) : 0;
+  oppCellSize = Math.max(oppCellSize, 14);
+
+  myCanvas.width = COLS * cellSize;
+  myCanvas.height = ROWS * cellSize;
+
+  if (showOpp) {
+    oppCanvas.width = COLS * oppCellSize;
+    oppCanvas.height = ROWS * oppCellSize;
+  }
+
+  const ncSize = Math.floor(cellSize * 0.6);
+  for (const nc of myNextCanvases) {
+    nc.width = ncSize;
+    nc.height = ncSize * 2;
+  }
+}
+
+// ── Pair Logic ──
+function createPair() {
+  return { pivotColor: randomColor(), childColor: randomColor(), pivotRow: 0, pivotCol: 2, rotation: 2 };
+}
+
+function getChildPos(pair) {
+  const o = CHILD_OFFSETS[pair.rotation];
+  return { row: pair.pivotRow + o.dr, col: pair.pivotCol + o.dc };
+}
+
+function isValid(r, c) { return c >= 0 && c < COLS && r >= 0 && r < TOTAL_ROWS; }
+function isFree(r, c) { return isValid(r, c) && field[r][c] === 0; }
+
+function canPlace(pair) {
+  const ch = getChildPos(pair);
+  return isFree(pair.pivotRow, pair.pivotCol) && isFree(ch.row, ch.col);
+}
+
+function spawnPair() {
+  while (nextPairs.length < 3) nextPairs.push(createPair());
+  currentPair = nextPairs.shift();
+  nextPairs.push(createPair());
+  if (!canPlace(currentPair)) {
+    gameRunning = false;
+    if (!soloMode) socket.emit('iLost');
+    else {
+      document.getElementById('resultTitle').textContent = 'GAME OVER';
+      document.getElementById('resultTitle').style.color = 'var(--accent-pink)';
+      document.getElementById('resultDetail').textContent = `Score: ${score.toLocaleString()} / Max Chain: ${maxChain}`;
+      document.getElementById('resultOverlay').classList.add('show');
+    }
+    return false;
+  }
+  drawNext();
+  return true;
+}
+
+function movePair(dc) {
+  if (!currentPair || animating) return;
+  const np = { ...currentPair, pivotCol: currentPair.pivotCol + dc };
+  const ch = getChildPos(np);
+  if (isFree(np.pivotRow, np.pivotCol) && isFree(ch.row, ch.col)) currentPair = np;
+}
+
+function rotatePair(dir) {
+  if (!currentPair || animating) return;
+  const newRot = (currentPair.rotation + dir + 4) % 4;
+  let np = { ...currentPair, rotation: newRot };
+  let ch = getChildPos(np);
+  if (isFree(ch.row, ch.col)) { currentPair = np; return; }
+  for (const kick of [{dr:0,dc:-1},{dr:0,dc:1},{dr:-1,dc:0}]) {
+    const kp = { ...np, pivotRow: np.pivotRow + kick.dr, pivotCol: np.pivotCol + kick.dc };
+    const kc = getChildPos(kp);
+    if (isFree(kp.pivotRow, kp.pivotCol) && isFree(kc.row, kc.col)) { currentPair = kp; return; }
+  }
+}
+
+function softDrop() {
+  if (!currentPair || animating) return false;
+  const np = { ...currentPair, pivotRow: currentPair.pivotRow + 1 };
+  const ch = getChildPos(np);
+  if (isFree(np.pivotRow, np.pivotCol) && isFree(ch.row, ch.col)) { currentPair = np; return true; }
+  return false;
+}
+
+function hardDrop() {
+  if (!currentPair || animating) return;
+  while (softDrop()) {}
+  lockPair();
+}
+
+function lockPair() {
+  if (!currentPair) return;
+  const ch = getChildPos(currentPair);
+  if (isValid(currentPair.pivotRow, currentPair.pivotCol))
+    field[currentPair.pivotRow][currentPair.pivotCol] = currentPair.pivotColor;
+  if (isValid(ch.row, ch.col))
+    field[ch.row][ch.col] = currentPair.childColor;
+  currentPair = null;
+  applyGravity();
+  resolveChains();
+}
+
+function applyGravity() {
+  let moved = true;
+  while (moved) {
+    moved = false;
+    for (let c = 0; c < COLS; c++) {
+      for (let r = TOTAL_ROWS - 2; r >= 0; r--) {
+        if (field[r][c] !== 0 && field[r + 1][c] === 0) {
+          field[r + 1][c] = field[r][c];
+          field[r][c] = 0;
+          moved = true;
+        }
+      }
+    }
+  }
+}
+
+// ── Chain ──
+function findConnected(r, c, color, visited) {
+  const k = r * COLS + c;
+  if (visited.has(k) || !isValid(r, c) || field[r][c] !== color || color <= 0) return [];
+  visited.add(k);
+  let g = [{ r, c }];
+  for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]])
+    g = g.concat(findConnected(r + dr, c + dc, color, visited));
+  return g;
+}
+
+function findAllGroups() {
+  const visited = new Set(), groups = [];
+  for (let r = 0; r < TOTAL_ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (field[r][c] > 0 && !visited.has(r * COLS + c)) {
+        const g = findConnected(r, c, field[r][c], visited);
+        if (g.length >= 4) groups.push(g);
+      }
+  return groups;
+}
+
+let chainCount = 0;
+
+function resolveChains() {
+  chainCount = 0;
+  animating = true;
+  chainStep();
+}
+
+function chainStep() {
+  const groups = findAllGroups();
+  if (groups.length === 0) {
+    if (chainCount > maxChain) maxChain = chainCount;
+    if (chainCount > 0) showChainText(chainCount);
+
+    // Apply pending garbage AFTER chain resolves
+    if (chainCount > 0 && pendingGarbage > 0) {
+      // Offset: chain clears reduce pending garbage
+      const offset = chainCount; // 1 chain = 1 line offset
+      pendingGarbage = Math.max(0, pendingGarbage - offset);
+      updateGarbageIndicator();
+    }
+
+    // If still pending garbage, drop it
+    if (pendingGarbage > 0) {
+      dropGarbage(pendingGarbage);
+      pendingGarbage = 0;
+      updateGarbageIndicator();
+    }
+
+    animating = false;
+    updateLevel();
+    sendFieldUpdate();
+    if (gameRunning) spawnPair();
+    return;
+  }
+
+  chainCount++;
+  const cellsToClear = [];
+  for (const group of groups) for (const cell of group) cellsToClear.push(cell);
+
+  const bonus = Math.pow(2, chainCount - 1);
+  const points = cellsToClear.length * 10 * bonus;
+  score += points;
+  totalCleared += cellsToClear.length;
+
+  // Send garbage for chains >= 2
+  if (chainCount >= 2 && !soloMode) {
+    const garbageLines = Math.floor(chainCount * 0.7);
+    if (garbageLines > 0) socket.emit('sendGarbage', { lines: garbageLines });
+  }
+
+  // Flash animation
+  const origColors = cellsToClear.map(c => field[c.r][c.c]);
+  let flashes = 0;
+  const iv = setInterval(() => {
+    flashes++;
+    for (let i = 0; i < cellsToClear.length; i++) {
+      field[cellsToClear[i].r][cellsToClear[i].c] = flashes % 2 === 0 ? origColors[i] : 0;
+    }
+    drawMyField();
+    if (flashes >= 6) {
+      clearInterval(iv);
+      for (const cell of cellsToClear) field[cell.r][cell.c] = 0;
+      applyGravity();
+      setTimeout(chainStep, 150);
+    }
+  }, 50);
+}
+
+function dropGarbage(lines) {
+  for (let l = 0; l < lines; l++) {
+    // Shift everything up
+    for (let r = 0; r < TOTAL_ROWS - 1; r++)
+      for (let c = 0; c < COLS; c++)
+        field[r][c] = field[r + 1][c];
+    // Fill bottom row with garbage (color = -1)
+    const holeCol = Math.floor(rng() * COLS);
+    for (let c = 0; c < COLS; c++)
+      field[TOTAL_ROWS - 1][c] = c === holeCol ? 0 : -1;
+  }
+}
+
+function updateGarbageIndicator() {
+  const el = document.getElementById('garbageIndicator');
+  el.textContent = pendingGarbage > 0 ? `⚠ おじゃま: ${pendingGarbage}段` : '';
+}
+
+function showChainText(chain) {
+  const el = document.getElementById('chainDisplay');
+  el.textContent = chain >= 5 ? `${chain} CHAIN!!!` : `${chain} CHAIN${'!'.repeat(Math.max(0, chain - 1))}`;
+  el.classList.add('show');
+  clearTimeout(chainTimeout);
+  chainTimeout = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function updateLevel() {
+  const newLevel = Math.floor(totalCleared / 20) + 1;
+  if (newLevel > level) {
+    level = newLevel;
+    numColors = Math.min(3 + Math.floor((level - 1) / 2), 5);
+    dropInterval = Math.max(100, dropInterval - 25);
+  }
+  document.getElementById('myScore').textContent = score.toLocaleString();
+}
+
+function sendFieldUpdate() {
+  if (soloMode) return;
+  // Send compressed field to server
+  socket.emit('fieldUpdate', {
+    field: field,
+    score: score,
+    chain: chainCount,
+    level: level,
+  });
+}
+
+// ── Rendering ──
+function drawPuyo(ctx, x, y, size, colorIdx, ghost) {
+  let c;
+  if (colorIdx === -1) c = GARBAGE_COLOR;
+  else if (colorIdx > 0 && colorIdx < PUYO_COLORS.length) c = PUYO_COLORS[colorIdx];
+  else return;
+
+  const r = size * 0.42;
+  const cx = x + size / 2, cy = y + size / 2;
+  const alpha = ghost ? 0.25 : 1;
+
+  const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.1, cx, cy, r);
+  grad.addColorStop(0, c.light); grad.addColorStop(0.7, c.main); grad.addColorStop(1, c.dark);
+
+  ctx.globalAlpha = alpha;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = grad; ctx.fill();
+
+  // Highlight
+  ctx.beginPath(); ctx.arc(cx - r*0.25, cy - r*0.25, r*0.22, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(255,255,255,${0.35 * alpha})`; ctx.fill();
+
+  if (colorIdx > 0) {
+    // Eyes
+    const eyeY = cy - r * 0.05, sp = r * 0.3, er = r * 0.11;
+    ctx.fillStyle = `rgba(255,255,255,${0.9 * alpha})`;
+    ctx.beginPath(); ctx.arc(cx - sp, eyeY, er, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + sp, eyeY, er, 0, Math.PI * 2); ctx.fill();
+    const pr = er * 0.5;
+    ctx.fillStyle = `rgba(20,20,40,${0.9 * alpha})`;
+    ctx.beginPath(); ctx.arc(cx - sp + pr*0.3, eyeY + pr*0.2, pr, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + sp + pr*0.3, eyeY + pr*0.2, pr, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawGrid(ctx, w, h, cs) {
+  ctx.strokeStyle = 'rgba(58,58,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r*cs); ctx.lineTo(w, r*cs); ctx.stroke(); }
+  for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(c*cs, 0); ctx.lineTo(c*cs, h); ctx.stroke(); }
+}
+
+function getGhostPos() {
+  if (!currentPair) return null;
+  let g = { ...currentPair };
+  while (true) {
+    const ng = { ...g, pivotRow: g.pivotRow + 1 };
+    const ch = getChildPos(ng);
+    if (!isFree(ng.pivotRow, ng.pivotCol) || !isFree(ch.row, ch.col)) break;
+    g = ng;
+  }
+  return g;
+}
+
+function drawMyField() {
+  const w = myCanvas.width, h = myCanvas.height;
+  myCtx.clearRect(0, 0, w, h);
+  drawGrid(myCtx, w, h, cellSize);
+
+  // Dead zone
+  myCtx.fillStyle = 'rgba(255,45,123,0.06)';
+  myCtx.fillRect(2 * cellSize, 0, cellSize, cellSize);
+
+  // Field puyos
+  for (let r = HIDDEN_ROW; r < TOTAL_ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (field[r][c] !== 0) drawPuyo(myCtx, c*cellSize, (r-HIDDEN_ROW)*cellSize, cellSize, field[r][c], false);
+
+  // Ghost
+  if (currentPair && !animating) {
+    const ghost = getGhostPos();
+    if (ghost && ghost.pivotRow !== currentPair.pivotRow) {
+      const gc = getChildPos(ghost);
+      if (ghost.pivotRow >= HIDDEN_ROW)
+        drawPuyo(myCtx, ghost.pivotCol*cellSize, (ghost.pivotRow-HIDDEN_ROW)*cellSize, cellSize, currentPair.pivotColor, true);
+      if (gc.row >= HIDDEN_ROW)
+        drawPuyo(myCtx, gc.col*cellSize, (gc.row-HIDDEN_ROW)*cellSize, cellSize, currentPair.childColor, true);
+    }
+  }
+
+  // Current pair
+  if (currentPair && !animating) {
+    const ch = getChildPos(currentPair);
+    if (currentPair.pivotRow >= HIDDEN_ROW)
+      drawPuyo(myCtx, currentPair.pivotCol*cellSize, (currentPair.pivotRow-HIDDEN_ROW)*cellSize, cellSize, currentPair.pivotColor, false);
+    if (ch.row >= HIDDEN_ROW)
+      drawPuyo(myCtx, ch.col*cellSize, (ch.row-HIDDEN_ROW)*cellSize, cellSize, currentPair.childColor, false);
+  }
+}
+
+function drawOppField() {
+  if (soloMode) return;
+  const w = oppCanvas.width, h = oppCanvas.height;
+  oppCtx.clearRect(0, 0, w, h);
+  drawGrid(oppCtx, w, h, oppCellSize);
+
+  for (let r = HIDDEN_ROW; r < TOTAL_ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (oppField[r] && oppField[r][c] !== 0)
+        drawPuyo(oppCtx, c*oppCellSize, (r-HIDDEN_ROW)*oppCellSize, oppCellSize, oppField[r][c], false);
+}
+
+function drawNext() {
+  const ncSize = Math.floor(cellSize * 0.6);
+  for (let i = 0; i < 2; i++) {
+    const nc = myNextCanvases[i];
+    const nctx = nc.getContext('2d');
+    nctx.clearRect(0, 0, nc.width, nc.height);
+    if (nextPairs[i]) {
+      drawPuyo(nctx, 0, 0, ncSize, nextPairs[i].childColor, false);
+      drawPuyo(nctx, 0, ncSize, ncSize, nextPairs[i].pivotColor, false);
+    }
+  }
+}
+
+// ── Game Loop ──
+function gameLoop(time) {
+  if (!gameRunning) return;
+  const dt = time - lastTime;
+  lastTime = time;
+
+  if (!animating && currentPair) {
+    dropTimer += dt;
+    if (dropTimer >= dropInterval) {
+      dropTimer = 0;
+      if (!softDrop()) lockPair();
+    }
+  }
+
+  drawMyField();
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Input ──
+document.addEventListener('keydown', (e) => {
+  if (!gameRunning || !currentPair || animating) return;
+  switch (e.key) {
+    case 'ArrowLeft': movePair(-1); break;
+    case 'ArrowRight': movePair(1); break;
+    case 'ArrowDown': softDrop(); dropTimer = 0; break;
+    case 'ArrowUp': hardDrop(); break;
+    case 'z': case 'Z': rotatePair(-1); break;
+    case 'x': case 'X': rotatePair(1); break;
+  }
+  e.preventDefault();
+});
+
+function setupVirtualButtons() {
+  document.querySelectorAll('.vbtn').forEach(btn => {
+    const action = btn.dataset.action;
+    const handler = (e) => {
+      e.preventDefault();
+      if (!gameRunning || !currentPair || animating) return;
+      switch (action) {
+        case 'left': movePair(-1); break;
+        case 'right': movePair(1); break;
+        case 'down': softDrop(); dropTimer = 0; break;
+        case 'drop': hardDrop(); break;
+        case 'rotL': rotatePair(-1); break;
+        case 'rotR': rotatePair(1); break;
+      }
+    };
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('mousedown', handler);
+  });
+}
+
+function setupSwipeControls() {
+  const fw = document.getElementById('myFieldWrapper');
+  fw.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoved = false;
+  }, { passive: false });
+
+  fw.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!gameRunning || !currentPair || controlMode !== 'swipe') return;
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    if (Math.abs(dx) > cellSize * 0.7 && Math.abs(dx) > Math.abs(dy)) {
+      movePair(dx > 0 ? 1 : -1); touchStartX = e.touches[0].clientX; touchMoved = true;
+    }
+    if (dy > cellSize * 0.7 && Math.abs(dy) > Math.abs(dx)) {
+      softDrop(); dropTimer = 0; touchStartY = e.touches[0].clientY; touchMoved = true;
+    }
+  }, { passive: false });
+
+  fw.addEventListener('touchend', (e) => {
+    if (!touchMoved && controlMode === 'swipe' && gameRunning && currentPair) {
+      const rect = fw.getBoundingClientRect();
+      const x = e.changedTouches[0].clientX - rect.left;
+      rotatePair(x < rect.width / 2 ? -1 : 1);
+    }
+  });
+}
+
+function toggleControls() {
+  controlMode = controlMode === 'buttons' ? 'swipe' : 'buttons';
+  document.getElementById('virtualButtons').style.display = controlMode === 'buttons' ? 'flex' : 'none';
+  document.getElementById('controlToggle').textContent = controlMode === 'buttons' ? '🎮' : '👆';
+}
+
+// ── Window ──
+window.addEventListener('resize', () => {
+  if (document.getElementById('gameScreen').classList.contains('active')) {
+    calcSizes();
+    drawMyField();
+    drawOppField();
+    drawNext();
+  }
+});
+
+window.addEventListener('load', () => {
+  setupVirtualButtons();
+  setupSwipeControls();
+
+  // Auto-detect name
+  const stored = localStorage.getItem('puyoName');
+  if (stored) document.getElementById('playerName').value = stored;
+  document.getElementById('playerName').addEventListener('change', function() {
+    localStorage.setItem('puyoName', this.value);
+  });
+});
+</script>
+
+</body>
+</html>
